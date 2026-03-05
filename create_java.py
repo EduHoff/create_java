@@ -3,13 +3,13 @@ import os
 import re
 from pathlib import Path
 
-
-
-os_name:str = platform.system()
-
+# Configuração Global
+SPRING_BOOT_VERSION = "3.2.0"
+GRADLE_DEP_MANAGEMENT_VERSION = "1.1.4" # Versão do plugin auxiliar do Gradle
+OS_NAME:str = platform.system()
 
 def clear_screen() -> None:
-    if os_name == "Windows":
+    if OS_NAME == "Windows":
         os.system('cls')
     else:
         os.system('clear')
@@ -20,8 +20,8 @@ def clear_screen() -> None:
 clear_screen()
 java_project_name_pattern:str = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$"
 while(True):
-    java_project_name:str = input("Digite o nome do projeto Java: ")
-    if re.fullmatch(java_project_name_pattern, java_project_name):
+    JAVA_PROJECT_NAME:str = input("Digite o nome do projeto Java: ")
+    if re.fullmatch(java_project_name_pattern, JAVA_PROJECT_NAME):
         break
     else:
         clear_screen()
@@ -29,24 +29,24 @@ while(True):
 
 clear_screen()
 while(True):
-    build_tool:str = input("1 | Vanilla \n2 | Maven \n3 | Gradle \n\n|| ")
+    BUILD_TOOL:str = input("1 | Vanilla \n2 | Maven \n3 | Gradle \n\n|| ")
 
-    match build_tool:
+    match BUILD_TOOL:
         case '1':
-            build_tool = "vanilla"
+            BUILD_TOOL = "vanilla"
             break
         case '2':
-            build_tool = "maven"
+            BUILD_TOOL = "maven"
             break
         case '3':
-            build_tool = "gradle"
+            BUILD_TOOL = "gradle"
             break
         
         case _:
                 clear_screen()
                 print("Opção inválida! Tente novamente.")
 
-if build_tool != "vanilla":
+if BUILD_TOOL != "vanilla":
     clear_screen()
     while(True):
         print("Gostaria de usar Spring Boot?")
@@ -71,11 +71,11 @@ if build_tool != "vanilla":
 base_dir = Path(__file__).resolve().parent
 
 #criação de diretórios e subdiretórios
-project_path = base_dir / java_project_name
+project_path = base_dir / JAVA_PROJECT_NAME
 project_path.mkdir(exist_ok=True)
 
 
-if build_tool == "vanilla":
+if BUILD_TOOL == "vanilla":
     src_path = project_path / "src" / "application"
     src_path.mkdir(parents=True, exist_ok=True)
 else:
@@ -468,7 +468,7 @@ tmp
 #README.md
 file_READMEmd:Path = project_path / "README.md"
 file_READMEmd.write_text(f"""
-# {java_project_name}
+# {JAVA_PROJECT_NAME}
 
 ## Primeira execução / Rebuild
 ```
@@ -488,16 +488,16 @@ docker compose down
 
 
 
-if(build_tool == "maven"):
+if(BUILD_TOOL == "maven"):
     parent_section = ""
     dependencies_section = ""
 
     if spring_boot:
-        parent_section = """
+        parent_section = f"""
 <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.2.0</version>
+    <version>{SPRING_BOOT_VERSION}</version>
 </parent>
 """
         
@@ -517,7 +517,7 @@ if(build_tool == "maven"):
     {parent_section}
 
     <groupId>com.example</groupId>
-    <artifactId>{java_project_name}</artifactId>
+    <artifactId>{JAVA_PROJECT_NAME}</artifactId>
     <version>1.0</version>
 
     <properties>
@@ -529,27 +529,27 @@ if(build_tool == "maven"):
 """)
     
 
-if(build_tool == "gradle"):
+if(BUILD_TOOL == "gradle"):
     file_settings: Path = project_path / "settings.gradle"
-    file_settings.write_text(f"rootProject.name = '{java_project_name}'")
+    file_settings.write_text(f"rootProject.name = '{JAVA_PROJECT_NAME}'")
 
-    # Valores padrão para Vanilla
     plugins_section = "id 'java'\n    id 'application'" 
-    dependencies_section = "" # Fica vazio para Vanilla
+    dependencies_section = ""
     main_class_config = "application { mainClass = 'application.Program' }"
     
     if spring_boot:
-        plugins_section = """
-    id 'java'
-    id 'org.springframework.boot' version '3.2.0'
-    id 'io.spring.dependency-management' version '1.1.4'"""
+        plugins_section = f"""
+id 'java'
+id 'org.springframework.boot' version '{SPRING_BOOT_VERSION}'
+id 'io.spring.dependency-management' version '{GRADLE_DEP_MANAGEMENT_VERSION}'
+"""
         
-        # AQUI ESTAVA O ERRO: Precisamos preencher as dependências!
         dependencies_section = """
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
-}"""
-        main_class_config = "" # Spring não usa esse bloco
+}
+"""
+        main_class_config = ""
 
     file_build: Path = project_path / "build.gradle"
     file_build.write_text(f"""
@@ -570,17 +570,17 @@ repositories {{
 
 
 
-if(build_tool == "vanilla"):
+if(BUILD_TOOL == "vanilla"):
     docker_image = "eclipse-temurin:21-jdk-jammy"
     docker_command = "sh -c 'javac -d bin $(find src -name \"*.java\") && java -cp bin application.Program'"
     docker_copy = "COPY src ./src"
 
-if(build_tool == "maven"):
+if(BUILD_TOOL == "maven"):
     docker_image = "maven:3.9.6-eclipse-temurin-21"
     docker_command = "mvn -q compile exec:java -Dexec.mainClass='application.Program'"
     docker_copy = "COPY pom.xml .\nCOPY src ./src"
 
-if(build_tool == "gradle"):
+if(BUILD_TOOL == "gradle"):
     docker_image = "gradle:8.6-jdk21"
     run_cmd = "bootRun" if spring_boot else "run"
     docker_command = f"gradle {run_cmd} -q --console=plain"
@@ -605,7 +605,7 @@ CMD [{docker_command}]
 file_dockerComposeYml: Path = project_path / "docker-compose.yml"
 file_dockerComposeYml.write_text(f"""
 services:
-    {java_project_name}:
+    {JAVA_PROJECT_NAME}:
         build: .
         volumes:
             - .:/app
@@ -613,3 +613,17 @@ services:
         tty: true
         command: {docker_command}
 """)
+
+clear_screen()
+print(f"--- Projeto Gerado com Sucesso ---")
+print(f"Nome do projeto: {JAVA_PROJECT_NAME}")
+print(f"Ferramenta de Build: {BUILD_TOOL.upper()}")
+print(f"Imagem Docker: {docker_image}")
+
+if spring_boot:
+    print(f"Spring Boot: {SPRING_BOOT_VERSION}")
+    # No Gradle, o Dependency Management é um plugin auxiliar importante
+    if BUILD_TOOL == "gradle":
+        print(f"Gradle Dep. Management: {GRADLE_DEP_MANAGEMENT_VERSION}")
+
+print(f"----------------------------------")
