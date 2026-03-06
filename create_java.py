@@ -4,8 +4,8 @@ import re
 from pathlib import Path
 
 # Configuração Global
-SPRING_BOOT_VERSION = "3.2.0"
-GRADLE_DEP_MANAGEMENT_VERSION = "1.1.4" # Versão do plugin auxiliar do Gradle
+SPRING_BOOT_VERSION:str = "3.2.0"
+GRADLE_DEP_MANAGEMENT_VERSION:str = "1.1.4" # Versão do plugin auxiliar do Gradle
 OS_NAME:str = platform.system()
 
 def clear_screen() -> None:
@@ -45,7 +45,8 @@ while(True):
         case _:
                 clear_screen()
                 print("Opção inválida! Tente novamente.")
-
+                
+spring_boot:bool = False
 if BUILD_TOOL != "vanilla":
     clear_screen()
     while(True):
@@ -54,10 +55,10 @@ if BUILD_TOOL != "vanilla":
 
         match choose:
             case '1':
-                spring_boot:bool = True
+                spring_boot = True
                 break
             case '2':
-                spring_boot:bool = False
+                spring_boot = False
                 break
             case _:
                     clear_screen()
