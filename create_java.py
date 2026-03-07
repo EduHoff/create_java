@@ -1,31 +1,51 @@
-import platform
-import os
-import re
 from pathlib import Path
+import platform
+import re
+import subprocess
 
 # Configuração Global
 SPRING_BOOT_VERSION:str = "3.2.0"
 GRADLE_DEP_MANAGEMENT_VERSION:str = "1.1.4" # Versão do plugin auxiliar do Gradle
 OS_NAME:str = platform.system()
 
+
 def clear_screen() -> None:
-    if OS_NAME == "Windows":
-        os.system('cls')
-    else:
-        os.system('clear')
+    command = "cls" if OS_NAME == "Windows" else "clear"
+    subprocess.run(command, shell=True)
+
+def is_docker_running() -> bool:
+    try:
+        subprocess.check_call(['docker', 'info'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return False
 
 
 # PROGRAMA PRINCIPAL
 
+
+
 clear_screen()
+base_dir = Path(__file__).resolve().parent #diretório onde o script está sendo executado
 java_project_name_pattern:str = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$"
 while(True):
     JAVA_PROJECT_NAME:str = input("Digite o nome do projeto Java: ")
-    if re.fullmatch(java_project_name_pattern, JAVA_PROJECT_NAME):
-        break
-    else:
+        
+    if not(re.fullmatch(java_project_name_pattern, JAVA_PROJECT_NAME)):
         clear_screen()
         print("Falha! Nome inválido ou não convencional para um projeto Java.")
+        continue
+
+    #criação de diretórios e subdiretórios
+    project_path:Path = base_dir / JAVA_PROJECT_NAME
+    
+    if project_path.exists():
+        clear_screen()
+        print("Falha! Nome já está sendo usado.")
+        continue
+
+    project_path.mkdir(exist_ok=True)
+    break
 
 clear_screen()
 while(True):
@@ -66,14 +86,7 @@ if BUILD_TOOL != "vanilla":
 
 
 
-# CRIANDO DIRETÓRIOS E ARQUIVOS
 
-#diretório onde o script está sendo executado
-base_dir = Path(__file__).resolve().parent
-
-#criação de diretórios e subdiretórios
-project_path = base_dir / JAVA_PROJECT_NAME
-project_path.mkdir(exist_ok=True)
 
 
 if BUILD_TOOL == "vanilla":
@@ -85,47 +98,42 @@ else:
 
 file_ProgramJava:Path = src_path / "Program.java"
 if(spring_boot):
-    file_ProgramJava.write_text("""
-    package application;
+    file_ProgramJava.write_text(
+"""package application;
 
-    import org.springframework.boot.SpringApplication;
-    import org.springframework.boot.autoconfigure.SpringBootApplication;
-    import org.springframework.context.ApplicationContext;
-    import java.util.Arrays;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
 
-    @SpringBootApplication
-    public class Program {
+@SpringBootApplication
+public class Program {
 
-        public static void main(String[] args) {
-            ApplicationContext ctx = SpringApplication.run(Program.class, args);
+    public static void main(String[] args) {
 
-            System.out.println("--- Teste Spring Boot ---");
-            System.out.println("Spring Boot está rodando!");
+        ApplicationContext context = SpringApplication.run(Program.class, args);
 
-            int beanCount = ctx.getBeanDefinitionCount();
-            System.out.println("Componentes (Beans) carregados: " + beanCount);
-            
-        }
+        System.out.println("--- Spring Boot Test ---");
+        System.out.println("Spring Boot is running!");
+
+        int beanCount = context.getBeanDefinitionCount();
+        System.out.println("Loaded components (beans): " + beanCount);
     }
-    """)
+}""")
 else:
-    file_ProgramJava.write_text("""
-    package application;
+    file_ProgramJava.write_text(
+"""package application;
 
-    public class Program {
+public class Program {
 
-        public static void main(String[] args) {
-            // TODO Auto-generated method stub
-            System.out.println("Hello, World");
-        }
-
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
     }
-    """)
+}""")
 
 #.gitignore
 file_gitignore:Path = project_path / ".gitignore"
-file_gitignore.write_text("""
-# Created by https://www.toptal.com/developers/gitignore/api/java,maven,gradle,intellij,eclipse,visualstudiocode,netbeans
+file_gitignore.write_text(
+"""# Created by https://www.toptal.com/developers/gitignore/api/java,maven,gradle,intellij,eclipse,visualstudiocode,netbeans
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,maven,gradle,intellij,eclipse,visualstudiocode,netbeans
 
 ### Eclipse ###
@@ -406,13 +414,12 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
-# End of https://www.toptal.com/developers/gitignore/api/java,maven,gradle,intellij,eclipse,visualstudiocode,netbeans
-""")
+# End of https://www.toptal.com/developers/gitignore/api/java,maven,gradle,intellij,eclipse,visualstudiocode,netbeans""")
 
 #.dockerignore
 file_dockerignore:Path = project_path / ".dockerignore"
-file_dockerignore.write_text("""
-# Git
+file_dockerignore.write_text(
+"""# Git
 .git
 .gitignore
 
@@ -462,14 +469,12 @@ tmp
 *.vsix
 
 # Maven timing
-.mvn/timing.properties
-"""
-)
+.mvn/timing.properties""")
 
 #README.md
 file_READMEmd:Path = project_path / "README.md"
-file_READMEmd.write_text(f"""
-# {JAVA_PROJECT_NAME}
+file_READMEmd.write_text(
+f"""# {JAVA_PROJECT_NAME}
 
 ## Primeira execução / Rebuild
 ```
@@ -484,8 +489,7 @@ docker compose up
 ## Encerrar
 ```
 docker compose down
-```
-""")
+```""")
 
 
 
@@ -512,8 +516,8 @@ if(BUILD_TOOL == "maven"):
 """
     #pom.xml
     file_pomXml: Path = project_path / "pom.xml"
-    file_pomXml.write_text(f"""
-<project xmlns="http://maven.apache.org/POM/4.0.0">
+    file_pomXml.write_text(
+f"""<project xmlns="http://maven.apache.org/POM/4.0.0">
     <modelVersion>4.0.0</modelVersion>
     {parent_section}
 
@@ -526,11 +530,11 @@ if(BUILD_TOOL == "maven"):
         <maven.compiler.target>21</maven.compiler.target>
     </properties>
     {dependencies_section}
-</project>
-""")
+</project>""")
     
 
 if(BUILD_TOOL == "gradle"):
+    #settings.gradle
     file_settings: Path = project_path / "settings.gradle"
     file_settings.write_text(f"rootProject.name = '{JAVA_PROJECT_NAME}'")
 
@@ -552,9 +556,10 @@ dependencies {
 """
         main_class_config = ""
 
+    #build.gradle
     file_build: Path = project_path / "build.gradle"
-    file_build.write_text(f"""
-plugins {{
+    file_build.write_text(
+f"""plugins {{
     {plugins_section}
 }}
 
@@ -590,22 +595,19 @@ if(BUILD_TOOL == "gradle"):
 
 #Dockerfile
 file_Dockerfile: Path = project_path / "Dockerfile"
-file_Dockerfile.write_text(f"""
-FROM {docker_image}
+file_Dockerfile.write_text(
+f"""FROM {docker_image}
 
 WORKDIR /app
 
 {docker_copy}
 
-# No Maven/Gradle, o comando de execução geralmente compila antes
-# No Vanilla, precisamos do mkdir bin (que já está no seu comando de execução)
-CMD [{docker_command}]
-""")
+CMD [{docker_command}]""")
 
 #docker-compose.yml
 file_dockerComposeYml: Path = project_path / "docker-compose.yml"
-file_dockerComposeYml.write_text(f"""
-services:
+file_dockerComposeYml.write_text(
+f"""services:
     {JAVA_PROJECT_NAME}:
         build: .
         volumes:
@@ -615,16 +617,38 @@ services:
         command: {docker_command}
 """)
 
+# Resumo sobre o projeto criado
+
 clear_screen()
-print(f"--- Projeto Gerado com Sucesso ---")
+print("--- Projeto Gerado com Sucesso ---")
+print(f"Sistema Operacional: {OS_NAME}")
 print(f"Nome do projeto: {JAVA_PROJECT_NAME}")
 print(f"Ferramenta de Build: {BUILD_TOOL.upper()}")
 print(f"Imagem Docker: {docker_image}")
 
 if spring_boot:
     print(f"Spring Boot: {SPRING_BOOT_VERSION}")
-    # No Gradle, o Dependency Management é um plugin auxiliar importante
     if BUILD_TOOL == "gradle":
         print(f"Gradle Dep. Management: {GRADLE_DEP_MANAGEMENT_VERSION}")
 
 print(f"----------------------------------")
+
+# Opção para executar o projeto criado
+
+while(True):
+    print("Gostaria de iniciar o projeto?")
+    choose:str = input("1 | Sim \n2 | Não \n\n|| ")
+
+    match choose:
+        case '1':
+            if is_docker_running():
+                subprocess.run(["docker", "compose", "up", "--build"],cwd=project_path,check=True)
+                print(f"Projeto criado em: {project_path}")
+            else:
+                print("O Docker não está instalado ou o daemon não está em execução.")
+            break
+        case '2':
+            break
+        case _:
+                clear_screen()
+                print("Opção inválida! Tente novamente.")
