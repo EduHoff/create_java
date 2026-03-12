@@ -1148,7 +1148,7 @@ docker compose up --build
 
 ## Iniciar
 ```
-docker compose up
+docker compose run --rm {JAVA_PROJECT_NAME.lower()}
 ```
 
 ## Encerrar
@@ -1267,7 +1267,7 @@ WORKDIR /app
 
 {docker_copy}
 
-CMD [{docker_command}]""")
+CMD {docker_command}""")
 
 #docker-compose.yml
 file_dockerComposeYml: Path = project_path / "docker-compose.yml"
