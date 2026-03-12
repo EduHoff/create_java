@@ -1273,7 +1273,7 @@ CMD [{docker_command}]""")
 file_dockerComposeYml: Path = project_path / "docker-compose.yml"
 file_dockerComposeYml.write_text(
 f"""services:
-    {JAVA_PROJECT_NAME}:
+    {JAVA_PROJECT_NAME.lower()}:
         build: .
         volumes:
             - .:/app
